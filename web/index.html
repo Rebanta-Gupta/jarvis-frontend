@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <div class="app-header">
+    <span class="app-logo">JARVIS</span>
+    <div class="header-right">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-txt" id="statusTxt">not configured</span>
+    </div>
+  </div>
+
+  <!-- ORB SCREEN -->
+  <div class="screen active" id="screen-orb">
+    <div class="orb-screen">
+      <canvas id="orbCanvas" width="220" height="220"></canvas>
+      <div class="orb-status">
+        <span class="orb-label" id="orbLabel">Idle</span>
+        <span class="orb-sub" id="orbSub">Type below or go to Chat</span>
+      </div>
+      <div class="orb-input-row">
+        <button class="mic-btn" id="orbMic" aria-label="Hold to speak">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <input class="orb-input" id="orbInput" type="text" placeholder="Ask Jarvis anything..." autocomplete="off"/>
+        <button class="orb-send" id="orbSend">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="orb-reply" id="orbReply"></div>
+    </div>
+  </div>
+
+  <!-- CHAT SCREEN -->
+  <div class="screen" id="screen-chat">
+    <div class="screen-header">
+      <span class="screen-title">Chat</span>
+      <button class="header-btn" id="btnResetChat" title="Clear conversation">↺</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <button class="mic-btn" id="chatMic" aria-label="Hold to speak">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <input class="chat-input" id="chatInput" type="text" placeholder="Message Jarvis..." autocomplete="off"/>
+      <button class="chat-send" id="chatSend">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- NOTES SCREEN -->
+  <div class="screen" id="screen-notes">
+    <div class="screen-header">
+      <span class="screen-title">Notes</span>
+      <button class="header-btn" id="btnAddNote">+</button>
+    </div>
+    <div class="search-row">
+      <input class="search-input" id="notesSearch" type="text" placeholder="Search notes..."/>
+    </div>
+    <div class="list-container" id="notesList"></div>
+  </div>
+
+  <!-- REMINDERS SCREEN -->
+  <div class="screen" id="screen-reminders">
+    <div class="screen-header">
+      <span class="screen-title">Reminders</span>
+      <button class="header-btn" id="btnAddReminder">+</button>
+    </div>
+    <div class="list-container" id="remindersList"></div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="screen" id="screen-settings">
+    <div class="screen-header"><span class="screen-title">Settings</span></div>
+    <div class="settings-body">
+      <div class="settings-group">
+        <label class="settings-label">Backend URL</label>
+        <input class="settings-input" id="settingsUrl" type="text" placeholder="https://jarvis-nogm.onrender.com"/>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label">API Key</label>
+        <input class="settings-input" id="settingsKey" type="password" placeholder="your-jarvis-api-key"/>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label">Theme</label>
+        <div class="theme-toggle">
+          <button class="theme-btn active" id="themeDark">Dark</button>
+          <button class="theme-btn" id="themeLight">Light</button>
+        </div>
+      </div>
+      <button class="save-btn" id="btnSaveSettings">Save Settings</button>
+      <div class="settings-status" id="settingsStatus"></div>
+      <div class="settings-divider">Connection</div>
+      <button class="test-btn" id="btnTestConnection">Test Connection</button>
+      <div class="connection-status" id="connectionStatus"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="orb">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3" fill="currentColor" opacity="0.5"/></svg>
+      <span>Jarvis</span>
+    </button>
+    <button class="nav-btn" data-screen="chat">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 4h14v10H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 17l3-3h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Chat</span>
+    </button>
+    <button class="nav-btn" data-screen="notes">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Notes</span>
+    </button>
+    <button class="nav-btn" data-screen="reminders">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 3a7 7 0 100 14A7 7 0 0010 3z" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Remind</span>
+    </button>
+    <button class="nav-btn" data-screen="settings">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

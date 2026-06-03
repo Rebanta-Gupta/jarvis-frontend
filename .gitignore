@@ -1,0 +1,28 @@
+# secrets
+.env
+
+# python virtual environment
+venv/
+
+# python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# editor folders
+.vscode/
+.idea/
+
+# jarvis data — contains conversation history and personal facts
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# audio temp files
+*.mp3
+*.wav
+*.tmp
+
+# whisper model cache
+~/.cache/whisper/
