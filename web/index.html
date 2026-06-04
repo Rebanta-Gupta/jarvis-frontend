@@ -24,17 +24,12 @@
       <canvas id="orbCanvas" width="220" height="220"></canvas>
       <div class="orb-status">
         <span class="orb-label" id="orbLabel">Idle</span>
-        <span class="orb-sub" id="orbSub">Type below or go to Chat</span>
+        <span class="orb-sub" id="orbSub">Hold the orb to speak</span>
       </div>
-      <div class="orb-input-row">
-        <button class="mic-btn" id="orbMic" aria-label="Hold to speak">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <input class="orb-input" id="orbInput" type="text" placeholder="Ask Jarvis anything..." autocomplete="off"/>
-        <button class="orb-send" id="orbSend">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/></svg>
-        </button>
-      </div>
+      <button class="orb-hold-btn" id="orbHoldBtn" aria-label="Hold to speak">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Hold to speak</span>
+      </button>
       <div class="orb-reply" id="orbReply"></div>
     </div>
   </div>
@@ -43,17 +38,28 @@
   <div class="screen" id="screen-chat">
     <div class="screen-header">
       <span class="screen-title">Chat</span>
-      <button class="header-btn" id="btnResetChat" title="Clear conversation">↺</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="header-btn" id="btnVoiceMode" title="Voice chat mode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="header-btn" id="btnResetChat" title="Clear conversation">↺</button>
+      </div>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
-    <div class="chat-input-row">
-      <button class="mic-btn" id="chatMic" aria-label="Hold to speak">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
+    <!-- Text input row -->
+    <div class="chat-input-row" id="chatTextRow">
       <input class="chat-input" id="chatInput" type="text" placeholder="Message Jarvis..." autocomplete="off"/>
       <button class="chat-send" id="chatSend">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/></svg>
       </button>
+    </div>
+    <!-- Voice chat row -->
+    <div class="chat-voice-row" id="chatVoiceRow" style="display:none">
+      <span class="voice-hint" id="voiceHint">Hold to speak</span>
+      <button class="voice-hold-btn" id="chatMic" aria-label="Hold to speak">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <span class="voice-hint">Release to send</span>
     </div>
   </div>
 

@@ -241,7 +241,75 @@ html, body {
 .modal-btn.secondary { background: var(--bg3); border: 0.5px solid var(--border2); color: var(--text2); }
 .modal-btn.secondary:hover { border-color: var(--accent); color: var(--text); }
 
-/* ── Mic button ───────────────────────────────────────────────────────────── */
+/* ── Orb hold button ──────────────────────────────────────────────────────── */
+.orb-hold-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 0.5px solid var(--border2);
+  color: var(--text3);
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.orb-hold-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent3); }
+.orb-hold-btn.recording {
+  background: var(--accent2);
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: mic-pulse 0.8s infinite;
+}
+
+/* ── Chat voice row ────────────────────────────────────────────────────────── */
+.chat-voice-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 14px;
+  border-top: 0.5px solid var(--border);
+  flex-shrink: 0;
+}
+.voice-hint {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.voice-hold-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 0.5px solid var(--border2);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.voice-hold-btn:hover  { border-color: var(--accent); color: var(--accent); background: var(--accent3); }
+.voice-hold-btn.recording {
+  background: var(--accent2);
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: mic-pulse 0.8s infinite;
+}
+
+/* ── Mic button (kept for compatibility) ──────────────────────────────────── */
 .mic-btn {
   width: 40px; height: 40px;
   border-radius: 10px;

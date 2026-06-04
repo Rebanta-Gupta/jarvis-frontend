@@ -1,11 +1,28 @@
-// ── CONFIG ────────────────────────────────────────────────────────────────────
+// ── CONFIG ────────────────────────────────────────────────────────────────
 let config = {
   apiUrl: localStorage.getItem('apiUrl') || '',
   apiKey: localStorage.getItem('apiKey') || '',
   theme:  localStorage.getItem('theme')  || 'dark',
 };
 
-// ── THEME ─────────────────────────────────────────────────────────────────────
+// ── API CACHE ─────────────────────────────────────────────────────────────
+// Simple cache for GET requests with TTL
+const apiCache = new Map();
+function getCacheKey(path, method) {
+  return method === 'GET' ? path : null;
+}
+function getCachedResponse(cacheKey, ttl) {
+  if (!cacheKey || !apiCache.has(cacheKey)) return null;
+  const { data, time } = apiCache.get(cacheKey);
+  if (Date.now() - time < ttl) return data;
+  apiCache.delete(cacheKey);
+  return null;
+}
+function setCachedResponse(cacheKey, data) {
+  if (cacheKey) apiCache.set(cacheKey, { data, time: Date.now() });
+}
+
+// ── THEME ─────────────────────────────────────────────────────────────────
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   config.theme = t;
@@ -14,25 +31,43 @@ function applyTheme(t) {
 }
 applyTheme(config.theme);
 
-// ── NAVIGATION ────────────────────────────────────────────────────────────────
+// ── CACHED DOM ELEMENTS ────────────────────────────────────────────────────
+const cachedScreens = document.querySelectorAll('.screen');
+const cachedNavBtns = document.querySelectorAll('.nav-btn');
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
 let currentScreen = 'orb';
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  // Use cached elements instead of querying DOM each time
+  cachedScreens.forEach(s => s.classList.remove('active'));
+  cachedNavBtns.forEach(b => b.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   document.querySelector(`[data-screen="${id}"]`).classList.add('active');
   currentScreen = id;
+  
+  // Resume/pause WebGL based on visibility
+  if (id === 'orb') resumeOrbRendering();
+  else pauseOrbRendering();
+  
   if (id === 'notes')     loadNotes();
   if (id === 'reminders') loadReminders();
   if (id === 'settings')  loadSettings();
 }
-document.querySelectorAll('.nav-btn').forEach(b => {
+cachedNavBtns.forEach(b => {
   b.addEventListener('click', () => showScreen(b.dataset.screen));
 });
 
-// ── API ───────────────────────────────────────────────────────────────────────
-async function apiCall(path, method = 'GET', body = null) {
+// ── API ────────────────────────────────────────────────────────────────────
+async function apiCall(path, method = 'GET', body = null, cacheTTL = 0) {
   if (!config.apiUrl) throw new Error('No backend URL configured. Go to Settings.');
+  
+  // Check cache for GET requests
+  const cacheKey = getCacheKey(path, method);
+  if (cacheKey) {
+    const cached = getCachedResponse(cacheKey, cacheTTL);
+    if (cached) return cached;
+  }
+  
   const opts = {
     method,
     headers: { 'Content-Type': 'application/json', 'x-api-key': config.apiKey },
@@ -40,10 +75,14 @@ async function apiCall(path, method = 'GET', body = null) {
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(config.apiUrl + path, opts);
   if (!res.ok) throw new Error(`Server error ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  
+  // Cache successful GET responses
+  setCachedResponse(cacheKey, data);
+  return data;
 }
 
-// ── STATUS ────────────────────────────────────────────────────────────────────
+// ── STATUS ─────────────────────────────────────────────────────────────────
 async function checkStatus() {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusTxt');
@@ -59,7 +98,7 @@ async function checkStatus() {
 }
 if (config.apiUrl) checkStatus();
 
-// ── ORB WEBGL SHADER ──────────────────────────────────────────────────────────
+// ── ORB WEBGL SHADER ───────────────────────────────────────────────────────
 const canvas = document.getElementById('orbCanvas');
 const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false });
 gl.clearColor(0, 0, 0, 0);
@@ -78,7 +117,7 @@ const FRAG = `
   vec3 yiq2rgb(vec3 c){return vec3(c.x+.956*c.y+.621*c.z,c.x-.272*c.y-.647*c.z,c.x-1.106*c.y+1.703*c.z);}
   vec3 adjustHue(vec3 col,float h){float r=h*3.14159/180.;vec3 y=rgb2yiq(col);float ca=cos(r),sa=sin(r);return yiq2rgb(vec3(y.x,y.y*ca-y.z*sa,y.y*sa+y.z*ca));}
   vec3 hash33(vec3 p){p=fract(p*vec3(.1031,.11369,.13787));p+=dot(p,p.yxz+19.19);return -1.+2.*fract(vec3(p.x+p.y,p.x+p.z,p.y+p.z)*p.zyx);}
-  float snoise3(vec3 p){const float K1=.333333,K2=.166667;vec3 i=floor(p+(p.x+p.y+p.z)*K1);vec3 d0=p-(i-(i.x+i.y+i.z)*K2);vec3 e=step(vec3(0.),d0-d0.yzx);vec3 i1=e*(1.-e.zxy);vec3 i2=1.-e.zxy*(1.-e);vec3 d1=d0-(i1-K2);vec3 d2=d0-(i2-K1);vec3 d3=d0-.5;vec4 h=max(.6-vec4(dot(d0,d0),dot(d1,d1),dot(d2,d2),dot(d3,d3)),0.);vec4 n=h*h*h*h*vec4(dot(d0,hash33(i)),dot(d1,hash33(i+i1)),dot(d2,hash33(i+i2)),dot(d3,hash33(i+1.)));return dot(vec4(31.316),n);}
+  float snoise3(vec3 p){const float K1=.333333,K2=.166667;vec3 i=floor(p+(p.x+p.y+p.z)*K1);vec3 d0=p-(i-(i.x+i.y+i.z)*K2);vec3 e=step(vec3(0.),d0-d0.yzx);vec3 i1=e*(1.-e.zxy);vec3 i2=1.-e.zxy*(1.-e);vec3 i3=1.-e.zxy;vec3 p1=d0-i1+K2;vec3 p2=d0-i2+K1;vec3 p3=d0-i3+K2*2.;vec3 ip=vec3(1.)/vec3(289.);vec3 p0t=fract(i*ip),p1t=fract((i+i1)*ip),p2t=fract((i+i2)*ip),p3t=fract((i+i3)*ip);vec3 n0=hash33(p0t),n1=hash33(p1t),n2=hash33(p2t),n3=hash33(p3t);float n=.5+dot(d0,n0)*d0.x*d0.x*(3.-2.*d0.x)*.25;n+=.5+dot(p1,n1)*p1.x*p1.x*(3.-2.*p1.x)*.25;n+=.5+dot(p2,n2)*p2.x*p2.x*(3.-2.*p2.x)*.25;n+=.5+dot(p3,n3)*p3.x*p3.x*(3.-2.*p3.x)*.25;return n*.5;}
   vec4 extractAlpha(vec3 c){float a=max(max(c.r,c.g),c.b);return vec4(c/(a+1e-5),a);}
   const vec3 bc1=vec3(.611765,.262745,.996078),bc2=vec3(.298039,.760784,.913725),bc3=vec3(.062745,.078431,.6);
   const float innerRadius=.6,noiseScale=.65;
@@ -155,6 +194,10 @@ const ORB_STATES = {
 let curHue=0, tgtHue=0, curHover=0, tgtHover=0, curRot=0;
 let curHoverI=0.05, tgtHoverI=0.05, timeScale=0.5, simT=0, lastT=0;
 
+// ── ORB RENDERING CONTROL ──────────────────────────────────────────────────
+let orbRenderingEnabled = true;
+let orbAnimationId = null;
+
 function lerp(a, b, k) { return a + (b - a) * k; }
 
 function setOrbState(s) {
@@ -164,8 +207,22 @@ function setOrbState(s) {
   document.getElementById('orbSub').textContent   = st.sub;
 }
 
+function pauseOrbRendering() {
+  orbRenderingEnabled = false;
+}
+
+function resumeOrbRendering() {
+  if (orbRenderingEnabled) return; // Already running
+  orbRenderingEnabled = true;
+  orbFrame(lastT);
+}
+
 function orbFrame(ts) {
-  requestAnimationFrame(orbFrame);
+  orbAnimationId = requestAnimationFrame(orbFrame);
+  
+  // Skip rendering if paused to save CPU/battery
+  if (!orbRenderingEnabled) return;
+  
   const dt = Math.min((ts - lastT) * 0.001, 0.05); lastT = ts;
   curHue    = lerp(curHue,    tgtHue,    0.03);
   curHover  = lerp(curHover,  tgtHover,  0.04);
@@ -181,9 +238,9 @@ function orbFrame(ts) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 setOrbState('idle');
-requestAnimationFrame(orbFrame);
+orbFrame(0);
 
-// ── ORB INPUT ─────────────────────────────────────────────────────────────────
+// ── ORB INPUT ──────────────────────────────────────────────────────────────
 async function orbSend() {
   const inp   = document.getElementById('orbInput');
   const reply = document.getElementById('orbReply');
@@ -210,7 +267,7 @@ async function orbSend() {
 document.getElementById('orbSend').addEventListener('click', orbSend);
 document.getElementById('orbInput').addEventListener('keydown', e => { if (e.key === 'Enter') orbSend(); });
 
-// ── CHAT ──────────────────────────────────────────────────────────────────────
+// ── CHAT ───────────────────────────────────────────────────────────────────
 function addMsg(role, text) {
   const msgs = document.getElementById('chatMessages');
   const div  = document.createElement('div');
@@ -255,9 +312,12 @@ document.getElementById('btnResetChat').addEventListener('click', async () => {
   } catch (e) { alert(e.message); }
 });
 
-// ── NOTES ─────────────────────────────────────────────────────────────────────
+// ── NOTES ──────────────────────────────────────────────────────────────────
 let notesCache = JSON.parse(localStorage.getItem('notes') || '[]');
 function saveNotes() { localStorage.setItem('notes', JSON.stringify(notesCache)); }
+
+// Debounce timer for search
+let notesSearchTimeout = null;
 
 function loadNotes(filter = '') {
   const list = document.getElementById('notesList');
@@ -310,10 +370,15 @@ function showNoteModal() {
   overlay.querySelector('#mNoteContent').focus();
 }
 
-document.getElementById('notesSearch').addEventListener('input', e => loadNotes(e.target.value));
+// Debounced search input listener
+document.getElementById('notesSearch').addEventListener('input', e => {
+  clearTimeout(notesSearchTimeout);
+  notesSearchTimeout = setTimeout(() => loadNotes(e.target.value), 150);
+});
+
 document.getElementById('btnAddNote').addEventListener('click', showNoteModal);
 
-// ── REMINDERS ─────────────────────────────────────────────────────────────────
+// ── REMINDERS ──────────────────────────────────────────────────────────────
 let remindersCache = JSON.parse(localStorage.getItem('reminders') || '[]');
 function saveReminders() { localStorage.setItem('reminders', JSON.stringify(remindersCache)); }
 
@@ -352,12 +417,25 @@ function loadReminders() {
   });
 }
 
-// Check every 30s if reminders have fired
-setInterval(() => {
-  const now = new Date().toISOString(); let updated = false;
-  remindersCache.forEach(r => { if (!r.fired && r.due <= now) { r.fired = true; updated = true; } });
-  if (updated) { saveReminders(); if (currentScreen === 'reminders') loadReminders(); }
-}, 30000);
+// ── REMINDER CHECK INTERVAL (WITH CLEANUP) ─────────────────────────────────
+let reminderCheckInterval = null;
+function startReminderChecking() {
+  // Prevent duplicate intervals
+  if (reminderCheckInterval) return;
+  
+  reminderCheckInterval = setInterval(() => {
+    const now = new Date().toISOString(); let updated = false;
+    remindersCache.forEach(r => { if (!r.fired && r.due <= now) { r.fired = true; updated = true; } });
+    if (updated) { saveReminders(); if (currentScreen === 'reminders') loadReminders(); }
+  }, 30000);
+}
+startReminderChecking();
+
+// Clean up interval when page unloads
+window.addEventListener('beforeunload', () => {
+  if (reminderCheckInterval) clearInterval(reminderCheckInterval);
+  if (orbAnimationId) cancelAnimationFrame(orbAnimationId);
+});
 
 document.getElementById('btnAddReminder').addEventListener('click', () => {
   const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
@@ -385,7 +463,7 @@ document.getElementById('btnAddReminder').addEventListener('click', () => {
   overlay.querySelector('#mRemMsg').focus();
 });
 
-// ── SETTINGS ──────────────────────────────────────────────────────────────────
+// ── SETTINGS ───────────────────────────────────────────────────────────────
 function loadSettings() {
   document.getElementById('settingsUrl').value = config.apiUrl;
   document.getElementById('settingsKey').value = config.apiKey;
@@ -414,7 +492,7 @@ document.getElementById('btnTestConnection').addEventListener('click', async () 
   }
 });
 
-// ── VOICE INPUT ───────────────────────────────────────────────────────────────
+// ── VOICE INPUT ────────────────────────────────────────────────────────────
 // Uses Web Speech API — works natively on Android Chrome, no libraries needed.
 // Hold to speak, release to send.
 
