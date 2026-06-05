@@ -1,0 +1,140 @@
+/* ── Desktop layout — overrides styles.css ───────────────────────────────── */
+html, body { overflow: hidden; }
+
+.desktop-app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg);
+  /* No max-width — fills the whole screen */
+  max-width: none;
+  margin: 0;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 56px;
+  height: 100vh;
+  background: var(--bg2);
+  border-right: 0.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.sidebar-logo {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text3);
+  margin-bottom: 16px;
+  font-family: 'Syne', sans-serif;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.sidebar-btn {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  position: relative;
+}
+.sidebar-btn:hover  { background: var(--bg4); color: var(--text2); }
+.sidebar-btn.active { background: var(--accent2); color: var(--accent); border: 0.5px solid rgba(127,119,221,0.2); }
+
+/* Tooltip on hover */
+.sidebar-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg4);
+  color: var(--text);
+  font-size: 11px;
+  font-family: 'Syne', sans-serif;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 0.5px solid var(--border2);
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.sidebar-status { display: flex; align-items: center; justify-content: center; }
+
+/* ── Main content area ────────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 720px; /* comfortable reading width */
+}
+
+/* ── Orb screen desktop ───────────────────────────────────────────────────── */
+.orb-screen-desktop {
+  gap: 24px;
+}
+.orb-screen-desktop #orbCanvas {
+  width: 300px;
+  height: 300px;
+}
+
+.status-txt-desktop {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+  margin-top: -8px;
+}
+
+/* ── Hide mobile-only elements on desktop ────────────────────────────────── */
+.app-header,
+.bottom-nav {
+  display: none !important;
+}
+
+/* ── Restore screen full height (no header/nav) ──────────────────────────── */
+.screen {
+  height: 100%;
+}
+
+/* ── Wider list containers on desktop ────────────────────────────────────── */
+.list-container {
+  max-width: 600px;
+}
+.settings-body {
+  max-width: 480px;
+}
+
+/* ── Chat wider ───────────────────────────────────────────────────────────── */
+.chat-messages {
+  padding: 20px 24px;
+}
+.chat-input-row,
+.chat-voice-row {
+  padding: 14px 24px;
+}
+.msg {
+  max-width: 68%;
+}
