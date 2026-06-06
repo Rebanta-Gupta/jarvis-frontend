@@ -6,7 +6,7 @@
 <title>Jarvis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../shared/styles.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  <!-- ORB SCREEN — just the orb, nothing else -->
+  <!-- ORB SCREEN -->
   <div class="screen active" id="screen-orb">
     <div class="orb-screen">
       <canvas id="orbCanvas" width="220" height="220"></canvas>
@@ -47,7 +47,6 @@
       </div>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
-    <!-- Text input -->
     <div class="chat-input-row" id="chatTextRow">
       <input class="chat-input" id="chatInput" type="text" placeholder="Message Jarvis..." autocomplete="off"/>
       <button class="chat-send" id="chatSend">
@@ -56,7 +55,6 @@
         </svg>
       </button>
     </div>
-    <!-- Voice input -->
     <div class="chat-voice-row" id="chatVoiceRow" style="display:none">
       <span class="voice-hint">Hold to speak, release to send</span>
       <button class="voice-hold-btn" id="chatMic" aria-label="Hold to speak">
@@ -141,6 +139,8 @@
     </button>
   </nav>
 </div>
-<script src="app.js"></script>
+<!-- orb.js must load before app.js — it defines initOrb() and setOrbState() -->
+<script src="../shared/orb.js"></script>
+<script src="../shared/app.js"></script>
 </body>
 </html>

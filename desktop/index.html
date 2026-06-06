@@ -6,7 +6,7 @@
 <title>Jarvis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../shared/styles.css">
 <link rel="stylesheet" href="desktop.css">
 </head>
 <body>
@@ -30,7 +30,6 @@
       </button>
     </nav>
     <div class="sidebar-bottom">
-      <!-- Status dot -->
       <div class="sidebar-status">
         <div class="status-dot" id="statusDot"></div>
       </div>
@@ -49,8 +48,9 @@
         <canvas id="orbCanvas" width="300" height="300"></canvas>
         <div class="orb-status">
           <span class="orb-label" id="orbLabel">Idle</span>
-          <span class="orb-sub" id="orbSub">Say "Hey Jarvis"</span>
+          <span class="orb-sub"   id="orbSub">Say "Hey Jarvis"</span>
         </div>
+        <!-- statusTxt must exist in DOM for checkStatus() — hidden on desktop via CSS -->
         <div class="status-txt-desktop" id="statusTxt">not configured</div>
       </div>
     </div>
@@ -139,15 +139,8 @@
 
   </main>
 </div>
-<script src="app.js"></script>
-<script>
-  // Override nav for desktop sidebar
-  document.querySelectorAll('.sidebar-btn[data-screen]').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.sidebar-btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-    });
-  });
-</script>
+<!-- orb.js must load before app.js -->
+<script src="../shared/orb.js"></script>
+<script src="../shared/app.js"></script>
 </body>
 </html>
