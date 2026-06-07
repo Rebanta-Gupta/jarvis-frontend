@@ -88,6 +88,39 @@ if (config.apiUrl) checkStatus();
 // orbRenderingEnabled is declared in orb.js — we write to it here
 initOrb();
 
+// ── ORB STATE STYLING & AMBIENT TIME ───────────────────────────────────
+let orbStateClass = 'state-idle';
+
+function updateOrbStateClass(state) {
+  const orbScreen = document.querySelector('.orb-screen');
+  if (!orbScreen) return;
+  orbScreen.classList.remove('state-idle', 'state-listening', 'state-thinking', 'state-speaking');
+  orbStateClass = `state-${state}`;
+  orbScreen.classList.add(orbStateClass);
+}
+
+// Update time every second
+function updateOrbTime() {
+  const timeEl = document.getElementById('orbTime');
+  if (!timeEl) return;
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  timeEl.textContent = `${h}:${m}`;
+}
+setInterval(updateOrbTime, 1000);
+updateOrbTime(); // immediate
+
+// Override setOrbState to update our styling
+const originalSetOrbState = setOrbState;
+window.setOrbState = function(s) {
+  originalSetOrbState(s);
+  if (s === 'idle')      updateOrbStateClass('idle');
+  if (s === 'listening') updateOrbStateClass('listening');
+  if (s === 'thinking')  updateOrbStateClass('thinking');
+  if (s === 'speaking')  updateOrbStateClass('speaking');
+};
+
 // ── CHAT ──────────────────────────────────────────────────────────────────
 function addMsg(role, text) {
   const msgs = document.getElementById('chatMessages');

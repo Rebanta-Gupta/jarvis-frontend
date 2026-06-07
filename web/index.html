@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jarvis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/styles.css">
 </head>
 <body>
@@ -23,10 +23,12 @@
   <!-- ORB SCREEN -->
   <div class="screen active" id="screen-orb">
     <div class="orb-screen">
+      <div class="orb-time" id="orbTime">00:00</div>
       <canvas id="orbCanvas" width="220" height="220"></canvas>
       <div class="orb-status">
         <span class="orb-label" id="orbLabel">Idle</span>
-        <span class="orb-sub"   id="orbSub">Say "Hey Jarvis"</span>
+        <div class="orb-divider"></div>
+        <span class="orb-sub" id="orbSub">Say "Hey Jarvis"</span>
       </div>
     </div>
   </div>
@@ -56,7 +58,7 @@
       </button>
     </div>
     <div class="chat-voice-row" id="chatVoiceRow" style="display:none">
-      <span class="voice-hint">Hold to speak, release to send</span>
+      <span class="voice-hint">Hold to speak</span>
       <button class="voice-hold-btn" id="chatMic" aria-label="Hold to speak">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
@@ -139,7 +141,7 @@
     </button>
   </nav>
 </div>
-<!-- orb.js must load before app.js — it defines initOrb() and setOrbState() -->
+<!-- orb.js must load before app.js -->
 <script src="../shared/orb.js"></script>
 <script src="../shared/app.js"></script>
 </body>
