@@ -1,8 +1,15 @@
+// ── 5. SYSTEM THEME DETECTION ─────────────────────────────────────────────
+function getSystemTheme() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark' : 'light';
+}
+
 // ── CONFIG ────────────────────────────────────────────────────────────────
+// If user has never manually set a theme, fall back to system preference
 let config = {
   apiUrl: localStorage.getItem('apiUrl') || '',
   apiKey: localStorage.getItem('apiKey') || '',
-  theme:  localStorage.getItem('theme')  || 'dark',
+  theme:  localStorage.getItem('theme')  || getSystemTheme(),
 };
 
 // ── THEME ─────────────────────────────────────────────────────────────────
@@ -14,9 +21,15 @@ function applyTheme(t) {
 }
 applyTheme(config.theme);
 
+// 5. Listen for OS-level theme changes — only auto-switch if user hasn't pinned a theme
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('theme')) {
+    applyTheme(e.matches ? 'dark' : 'light');
+  }
+});
+
 // ── CACHED DOM ────────────────────────────────────────────────────────────
 const $screens = document.querySelectorAll('.screen');
-// Matches both mobile .nav-btn AND desktop .sidebar-btn
 const $navBtns = document.querySelectorAll('.nav-btn, .sidebar-btn[data-screen]');
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
@@ -26,18 +39,15 @@ function showScreen(id) {
   $screens.forEach(s => s.classList.remove('active'));
   $navBtns.forEach(b => b.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
-  // Mark active on ALL nav elements with this data-screen (covers both sidebars)
   document.querySelectorAll(`[data-screen="${id}"]`).forEach(el => el.classList.add('active'));
   currentScreen = id;
   orbRenderingEnabled = (id === 'orb');
 
-  // Stop orb listening when leaving orb screen
   if (id !== 'orb' && recognition && orbListening) {
     try { recognition.stop(); } catch(e) {}
-    orbListening  = false;
-    orbWakePhase  = 'waiting';
+    orbListening = false;
+    orbWakePhase = 'waiting';
   }
-  // Start orb listening when entering orb screen
   if (id === 'orb') setTimeout(maybeStartOrbListening, 200);
 
   if (id === 'notes')     loadNotes();
@@ -46,6 +56,13 @@ function showScreen(id) {
 }
 
 $navBtns.forEach(b => b.addEventListener('click', () => showScreen(b.dataset.screen)));
+
+// ── 4. HAPTIC FEEDBACK ────────────────────────────────────────────────────
+function haptic(style) {
+  if (!navigator.vibrate) return;
+  const patterns = { light: [8], medium: [20], success: [10, 30, 10] };
+  navigator.vibrate(patterns[style] || patterns.light);
+}
 
 // ── API ───────────────────────────────────────────────────────────────────
 async function apiCall(path, method = 'GET', body = null) {
@@ -84,42 +101,56 @@ async function checkStatus() {
 }
 if (config.apiUrl) checkStatus();
 
-// ── ORB (WebGL shader lives in orb.js, loaded before this file) ───────────
-// orbRenderingEnabled is declared in orb.js — we write to it here
+// ── ORB ───────────────────────────────────────────────────────────────────
 initOrb();
 
-// ── ORB STATE STYLING & AMBIENT TIME ───────────────────────────────────
-let orbStateClass = 'state-idle';
-
+// Orb state class for CSS-driven glow
 function updateOrbStateClass(state) {
   const orbScreen = document.querySelector('.orb-screen');
   if (!orbScreen) return;
   orbScreen.classList.remove('state-idle', 'state-listening', 'state-thinking', 'state-speaking');
-  orbStateClass = `state-${state}`;
-  orbScreen.classList.add(orbStateClass);
+  orbScreen.classList.add('state-' + state);
 }
 
-// Update time every second
+// Ambient time display
 function updateOrbTime() {
-  const timeEl = document.getElementById('orbTime');
-  if (!timeEl) return;
+  const el = document.getElementById('orbTime');
+  if (!el) return;
   const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  timeEl.textContent = `${h}:${m}`;
+  el.textContent = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 }
 setInterval(updateOrbTime, 1000);
-updateOrbTime(); // immediate
+updateOrbTime();
 
-// Override setOrbState to update our styling
-const originalSetOrbState = setOrbState;
+// 1. Character stagger animation for orb label
+function animateLabel(text) {
+  const el = document.getElementById('orbLabel');
+  if (!el) return;
+  el.innerHTML = '';
+  text.split('').forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.className = 'char';
+    span.textContent = ch === ' ' ? '\u00a0' : ch;
+    span.style.animationDelay = (i * 0.04) + 's';
+    el.appendChild(span);
+  });
+}
+
+// Override setOrbState from orb.js to hook in our extras
+const _origSetOrbState = setOrbState;
 window.setOrbState = function(s) {
-  originalSetOrbState(s);
-  if (s === 'idle')      updateOrbStateClass('idle');
-  if (s === 'listening') updateOrbStateClass('listening');
-  if (s === 'thinking')  updateOrbStateClass('thinking');
-  if (s === 'speaking')  updateOrbStateClass('speaking');
+  _origSetOrbState(s);
+  updateOrbStateClass(s);
+  // Re-animate the label text that orb.js just set
+  const el = document.getElementById('orbLabel');
+  if (el) animateLabel(el.textContent);
 };
+
+// Run once on load to animate initial "Idle" label
+setTimeout(() => {
+  const el = document.getElementById('orbLabel');
+  if (el) animateLabel(el.textContent);
+}, 100);
 
 // ── CHAT ──────────────────────────────────────────────────────────────────
 function addMsg(role, text) {
@@ -150,6 +181,7 @@ async function chatSend(text) {
     if (!text) return;
     inp.value = '';
   }
+  haptic('light'); // 4.
   const inp = document.getElementById('chatInput');
   inp.disabled = true;
   document.getElementById('chatSend').disabled = true;
@@ -194,8 +226,6 @@ document.getElementById('btnVoiceMode').addEventListener('click', () => {
 });
 
 // ── NOTES ─────────────────────────────────────────────────────────────────
-// Notes are stored client-side in localStorage only.
-// A /tools REST endpoint on the backend would be needed for cross-device sync.
 let notesCache = JSON.parse(localStorage.getItem('notes') || '[]');
 function saveNotes() { localStorage.setItem('notes', JSON.stringify(notesCache)); }
 let notesSearchTimer = null;
@@ -210,6 +240,7 @@ function loadNotes(filter = '') {
     list.innerHTML = `<div class="empty-state"><div>📝</div><span>${filter ? `No notes match "${filter}"` : 'No notes yet. Hit + to add one.'}</span></div>`;
     return;
   }
+  // Re-render to trigger CSS cardIn animation (opacity:0 → cardIn forwards)
   list.innerHTML = [...items].reverse().map(n => `
     <div class="note-card">
       <button class="note-card-delete" data-id="${n.id}">✕</button>
@@ -220,6 +251,7 @@ function loadNotes(filter = '') {
   list.querySelectorAll('.note-card-delete').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
+      haptic('light'); // 4.
       notesCache = notesCache.filter(n => n.id !== +btn.dataset.id);
       saveNotes();
       loadNotes(document.getElementById('notesSearch').value);
@@ -248,6 +280,7 @@ function showNoteModal() {
     const id = Math.max(0, ...notesCache.map(n => n.id), 0) + 1;
     notesCache.push({ id, title: title || `Note ${id}`, content, created: new Date().toISOString() });
     saveNotes();
+    haptic('success'); // 4.
     overlay.remove();
     loadNotes();
   });
@@ -261,7 +294,6 @@ document.getElementById('notesSearch').addEventListener('input', e => {
 document.getElementById('btnAddNote').addEventListener('click', showNoteModal);
 
 // ── REMINDERS ─────────────────────────────────────────────────────────────
-// Reminders are stored client-side in localStorage only.
 let remindersCache = JSON.parse(localStorage.getItem('reminders') || '[]');
 function saveReminders() { localStorage.setItem('reminders', JSON.stringify(remindersCache)); }
 
@@ -278,7 +310,7 @@ function loadReminders() {
     const due     = new Date(r.due);
     const diffMin = Math.round((due - Date.now()) / 60000);
     let pill, pillClass;
-    if (r.fired)        { pill = 'done'; pillClass = 'done'; }
+    if (r.fired)           { pill = 'done'; pillClass = 'done'; }
     else if (diffMin < 1)  { pill = 'now';  pillClass = 'soon'; }
     else if (diffMin < 60) { pill = `${diffMin}m`; pillClass = 'soon'; }
     else { pill = `${Math.floor(diffMin / 60)}h ${diffMin % 60}m`; pillClass = ''; }
@@ -294,6 +326,7 @@ function loadReminders() {
   }).join('');
   list.querySelectorAll('.reminder-delete').forEach(btn => {
     btn.addEventListener('click', () => {
+      haptic('light'); // 4.
       remindersCache = remindersCache.filter(r => r.id !== +btn.dataset.id);
       saveReminders();
       loadReminders();
@@ -335,6 +368,7 @@ document.getElementById('btnAddReminder').addEventListener('click', () => {
     const due = new Date(Date.now() + mins * 60000).toISOString();
     remindersCache.push({ id, message: msg, due, fired: false, created: new Date().toISOString() });
     saveReminders();
+    haptic('success'); // 4.
     overlay.remove();
     loadReminders();
   });
@@ -359,10 +393,12 @@ document.getElementById('btnSaveSettings').addEventListener('click', () => {
 });
 
 document.getElementById('themeDark').addEventListener('click', () => {
-  applyTheme('dark'); localStorage.setItem('theme', 'dark');
+  applyTheme('dark');
+  localStorage.setItem('theme', 'dark'); // pin manually
 });
 document.getElementById('themeLight').addEventListener('click', () => {
-  applyTheme('light'); localStorage.setItem('theme', 'light');
+  applyTheme('light');
+  localStorage.setItem('theme', 'light'); // pin manually
 });
 
 document.getElementById('btnTestConnection').addEventListener('click', async () => {
@@ -382,9 +418,8 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 let recognition  = null;
 let isRecording  = false;
 let orbListening = false;
-let isSpeaking   = false;  // guard: don't start mic while TTS is active
+let isSpeaking   = false;
 
-// ── Browser TTS ───────────────────────────────────────────────────────────
 function speakReply(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -394,39 +429,31 @@ function speakReply(text) {
   utt.rate   = 1.05;
   utt.onend  = () => {
     isSpeaking = false;
-    if (currentScreen === 'orb') {
-      // Small cooldown before re-activating mic to avoid picking up TTS echo
-      setTimeout(startOrbListening, 800);
-    } else {
-      setOrbState('idle');
-    }
+    if (currentScreen === 'orb') setTimeout(startOrbListening, 800);
+    else setOrbState('idle');
   };
   window.speechSynthesis.speak(utt);
 }
 
-// ── ORB: continuous wake-word recognition ─────────────────────────────────
-let orbWakePhase  = 'waiting'; // 'waiting' | 'capturing'
+let orbWakePhase   = 'waiting';
 let orbWakeTimeout = null;
 
 function startOrbListening() {
-  // All guards in one place
-  if (!SpeechRecognition)        return;
-  if (orbListening)              return;
-  if (currentScreen !== 'orb')   return;
-  if (isSpeaking)                return;
+  if (!SpeechRecognition)      return;
+  if (orbListening)            return;
+  if (currentScreen !== 'orb') return;
+  if (isSpeaking)              return;
 
   setOrbState('idle');
   orbListening = true;
 
-  const r         = new SpeechRecognition();
-  r.lang          = 'en-US';
-  r.continuous    = true;
+  const r          = new SpeechRecognition();
+  r.lang           = 'en-US';
+  r.continuous     = true;
   r.interimResults = false;
 
   r.onresult = (e) => {
     const transcript = e.results[e.results.length - 1][0].transcript.trim().toLowerCase();
-    console.log('[Orb] heard:', transcript);
-
     if (orbWakePhase === 'waiting') {
       if (transcript.includes('jarvis')) {
         orbWakePhase = 'capturing';
@@ -472,7 +499,6 @@ async function handleOrbQuery(query) {
   setOrbState('thinking');
   document.getElementById('orbSub').textContent = query;
 
-  // Stop mic while waiting for response + speaking
   if (recognition && orbListening) {
     try { recognition.stop(); } catch(e) {}
     orbListening = false;
@@ -502,9 +528,9 @@ setTimeout(maybeStartOrbListening, 1000);
 // ── CHAT: hold-to-speak ───────────────────────────────────────────────────
 function buildHoldRecognition(onResult, onEnd) {
   if (!SpeechRecognition) return null;
-  const r          = new SpeechRecognition();
-  r.lang           = 'en-US';
-  r.interimResults = false;
+  const r           = new SpeechRecognition();
+  r.lang            = 'en-US';
+  r.interimResults  = false;
   r.maxAlternatives = 1;
   r.onresult = (e) => { const t = e.results[0][0].transcript.trim(); if (t) onResult(t); };
   r.onerror  = (e) => { console.warn('[Hold voice]', e.error); onEnd(); };
@@ -515,8 +541,9 @@ function buildHoldRecognition(onResult, onEnd) {
 function startHold(btn, onResult) {
   if (!SpeechRecognition) { alert('Voice input needs Chrome on HTTPS.'); return; }
   if (isRecording) return;
+  haptic('success'); // 4. double-pulse on record start
   const r = buildHoldRecognition(
-    (t) => { isRecording = false; btn.classList.remove('recording'); onResult(t); },
+    (t) => { isRecording = false; btn.classList.remove('recording'); haptic('light'); onResult(t); },
     ()  => { isRecording = false; btn.classList.remove('recording'); }
   );
   if (!r) return;
